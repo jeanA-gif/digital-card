@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jeancarlos Arias — Digital Card</title>
+<meta name="description" content="Payments, Loyalty & Growth Consultant @ North">
+<meta name="theme-color" content="#000000">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Supabase client (used once you add your keys; card runs offline until then) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root {
+    --bg:        #000000;
+    --ink:       #ffffff;
+    --ink-soft:  #9a9a9a;   /* title / secondary text */
+    --ink-mute:  #6f6f6f;   /* footer / subtle */
+    --border:    #ffffff;   /* box borders on black */
+    --box:       #000000;   /* button / bio fill */
+    --hover:     #161616;   /* subtle button hover lighten */
+    --star-off:  #3a3a3a;   /* empty star on black */
+
+    /* white "reviews" zone */
+    --paper:      #ffffff;
+    --paper-ink:  #0b0b0b;
+    --paper-soft: #4a4a4a;
+    --paper-mute: #7a7a7a;
+    --paper-line: #e4e4e4;
+    --paper-star: #cfcfcf;
+
+    --sans: "Hanken Grotesk", system-ui, -apple-system, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 430px;
+    padding: 0 22px 46px;
+  }
+
+  /* ---------- Profile ---------- */
+  .profile { text-align: center; padding-top: 46px; }
+
+  .avatar-ring { width: 112px; height: 112px; margin: 0 auto; }
+  .avatar {
+    width: 100%; height: 100%;
+    border-radius: 24px;
+    border: 2px solid var(--border);
+    background: var(--box);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+
+  .name {
+    font-size: 27px;
+    font-weight: 800;
+    line-height: 1.12;
+    margin-top: 22px;
+    letter-spacing: -0.01em;
+  }
+  .title {
+    color: var(--ink-soft);
+    font-size: 15px;
+    font-weight: 500;
+    margin-top: 9px;
+    line-height: 1.45;
+    padding: 0 8px;
+  }
+  .title .at { color: var(--ink); font-weight: 800; text-decoration: none; }
+  .title a.at:hover { text-decoration: underline; }
+
+  /* ---------- Rating summary (flat, no box) ---------- */
+  .rating {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 14px;
+  }
+  .stars-wrap {
+    position: relative;
+    display: inline-block;
+    font-size: 15px;
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+  .stars-wrap .base { color: var(--star-off); }
+  .stars-wrap .fill {
+    position: absolute; top: 0; left: 0;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+  }
+  .rating-num  { font-size: 14px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .rating-count{ font-size: 12px; color: var(--ink-mute); }
+  .rating.empty .rating-num { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- Action buttons (2x2, text only) ---------- */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+    margin-top: 26px;
+  }
+  .act {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 66px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: var(--box);
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: background .18s ease, transform .14s ease;
+  }
+  .act:hover, .act:focus-visible { background: var(--hover); outline: none; }
+  .act:active { transform: scale(0.98); }
+
+  /* ---------- Bio box ---------- */
+  .box {
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    background: var(--box);
+    padding: 20px;
+  }
+  #bio-block { margin-top: 26px; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .bio-text { color: var(--ink); font-size: 14.5px; line-height: 1.6; font-weight: 700; }
+
+  /* ---------- White reviews zone ---------- */
+  .paper {
+    background: var(--paper);
+    border-radius: 16px;
+    padding: 22px 20px;
+    margin-top: 22px;
+    color: var(--paper-ink);
+  }
+  .paper .eyebrow { color: var(--paper-ink); }
+  .paper-hint {
+    color: var(--paper-ink);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: -4px 0 16px;
+  }
+  .paper-divider { height: 1px; border: 0; background: var(--paper-line); margin: 16px 0; }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--paper-ink);
+    letter-spacing: 0.04em;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .paper input[type="text"], .paper textarea {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    color: var(--paper-ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    transition: border-color .2s, box-shadow .2s;
+    resize: vertical;
+  }
+  .paper input::placeholder, .paper textarea::placeholder { color: #9a9a9a; }
+  .paper input:focus, .paper textarea:focus {
+    outline: none;
+    border-color: #111;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.07);
+  }
+
+  /* Interactive star input (dark stars on white) */
+  .star-input { display: flex; gap: 4px; font-size: 27px; line-height: 1; color: var(--paper-star); }
+  .star-input button {
+    background: none; border: none; padding: 2px; cursor: pointer;
+    color: inherit; line-height: 1; transition: transform .12s, color .15s;
+  }
+  .star-input button::before { content: "★"; }
+  .star-input button.on { color: var(--paper-ink); }
+  .star-input button:hover { transform: scale(1.15); }
+
+  .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+  .submit {
+    width: 100%;
+    margin-top: 4px;
+    padding: 12px;
+    border: none;
+    border-radius: 11px;
+    background: var(--paper-ink);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform .15s, opacity .2s, background .2s;
+  }
+  .submit:hover { background: #000; }
+  .submit:active { transform: scale(0.98); }
+  .submit:disabled { opacity: 0.5; cursor: default; }
+
+  .form-msg { font-size: 12.5px; margin-top: 10px; text-align: center; min-height: 16px; }
+  .form-msg.ok  { color: #1a7f37; }
+  .form-msg.err { color: #c0392b; }
+
+  /* ---------- Reviews list (on white) ---------- */
+  .reviews { display: flex; flex-direction: column; }
+  .review { padding: 14px 0; border-top: 1px solid var(--paper-line); }
+  .reviews .review:first-child { border-top: 0; padding-top: 2px; }
+  .review-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .review-name { font-weight: 700; font-size: 14px; color: var(--paper-ink); }
+  .review-stars { font-size: 13px; letter-spacing: 1.5px; color: var(--paper-ink); white-space: nowrap; }
+  .review-stars .off { color: var(--paper-star); }
+  .review-body { font-size: 14px; color: var(--paper-soft); line-height: 1.5; }
+  .review-date { font-size: 11px; color: var(--paper-mute); margin-top: 6px; letter-spacing: 0.02em; }
+  .empty-state { text-align: center; padding: 14px 8px; color: var(--paper-mute); font-size: 14px; font-style: italic; }
+
+  .foot {
+    text-align: center;
+    padding: 28px 0 6px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.06em;
+  }
+  .foot .dot { color: var(--ink-soft); margin: 0 6px; }
+
+  /* ---------- Load animation ---------- */
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .reveal { opacity: 0; animation: rise .6s cubic-bezier(.2,.8,.2,1) forwards; }
+  .d1 { animation-delay: .04s; } .d2 { animation-delay: .11s; } .d3 { animation-delay: .18s; }
+  .d4 { animation-delay: .25s; } .d5 { animation-delay: .32s; } .d6 { animation-delay: .40s; }
+  .d7 { animation-delay: .48s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+
+    <section class="profile">
+      <div class="avatar-ring reveal d1">
+        <div class="avatar" id="avatar">JA</div>
+      </div>
+      <h1 class="name reveal d2" id="name">Jeancarlos Arias</h1>
+      <p class="title reveal d3" id="title"></p>
+
+      <div class="rating empty reveal d4" id="rating" aria-label="Average rating">
+        <span class="stars-wrap">
+          <span class="base">★★★★★</span>
+          <span class="fill" id="rating-fill">★★★★★</span>
+        </span>
+        <span class="rating-num" id="rating-num">New</span>
+        <span class="rating-count" id="rating-count">· no reviews yet</span>
+      </div>
+    </section>
+
+    <nav class="actions reveal d5">
+      <a class="act" id="call-btn" href="tel:+17817967276" aria-label="Call">Call</a>
+      <a class="act" id="email-btn" href="mailto:jeancarlos.arias@north.com" aria-label="Email">Email</a>
+      <a class="act" id="website-btn" href="https://www.north.com/#contact-cta" target="_blank" rel="noopener" aria-label="Website">Website</a>
+      <a class="act" id="save-btn" href="contact.vcf" download="Jeancarlos_Arias.vcf" aria-label="Save contact">Save</a>
+    </nav>
+
+    <!-- Bio: appears automatically when the profile has a bio -->
+    <div id="bio-block" class="reveal d6" style="display:none">
+      <div class="box">
+        <div class="eyebrow">Bio</div>
+        <p class="bio-text" id="bio-text"></p>
+      </div>
+    </div>
+
+    <!-- Reviews: white card holding the post form + the list -->
+    <section class="paper reveal d7">
+      <div class="eyebrow">Leave a Review</div>
+      <p class="paper-hint">Leave your business name and number.</p>
+      <form id="review-form" novalidate>
+        <input type="text" class="honeypot" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <div class="field">
+          <label for="rv-name">Your name</label>
+          <input type="text" id="rv-name" maxlength="60" placeholder="e.g. Jane D." required>
+        </div>
+
+        <div class="field">
+          <label>Rating</label>
+          <div class="star-input" id="star-input" role="radiogroup" aria-label="Rating">
+            <button type="button" data-v="1" role="radio" aria-checked="false" aria-label="1 star"></button>
+            <button type="button" data-v="2" role="radio" aria-checked="false" aria-label="2 stars"></button>
+            <button type="button" data-v="3" role="radio" aria-checked="false" aria-label="3 stars"></button>
+            <button type="button" data-v="4" role="radio" aria-checked="false" aria-label="4 stars"></button>
+            <button type="button" data-v="5" role="radio" aria-checked="false" aria-label="5 stars"></button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="rv-comment">Comment</label>
+          <textarea id="rv-comment" rows="3" maxlength="400" placeholder="Share your experience…" required></textarea>
+        </div>
+
+        <button type="submit" class="submit" id="submit-btn">Post Review</button>
+        <div class="form-msg" id="form-msg"></div>
+      </form>
+
+      <hr class="paper-divider">
+
+      <div class="eyebrow">Reviews</div>
+      <div class="reviews" id="review-list"></div>
+    </section>
+
+    <div class="foot">
+      Jeancarlos Arias <span class="dot">·</span> North
+    </div>
+  </main>
+
+<script>
+  /* ============================================================
+     EDIT HERE — 1. Supabase keys  2. fallback profile
+     ============================================================ */
+
+  // 1) Paste your Supabase project URL + PUBLIC anon key here.
+  //    Leave these as-is and the card runs in offline demo mode
+  //    (reviews stored only in this browser). Add real keys and it
+  //    switches to the shared cloud backend automatically.
+  //    ⚠️ Use the "anon" key ONLY. NEVER paste the service_role key here.
+  const SUPABASE_URL      = "https://fvceuzbrneymsqprzisp.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2Y2V1emJybmV5bXNxcHJ6aXNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwNDkyOTQsImV4cCI6MjEwMDYyNTI5NH0.Fgr8Ki7CVhOsFRPnyVMlLwrlhNvKOIYh3SvAzh2rIv0";
+
+  // 2) Fallback profile — shown before Supabase is set up. Once the DB is
+  //    live, non-empty fields from the "profile" row override these values.
+  const PROFILE = {
+    name:    "Jeancarlos Arias",
+    title:   "Payments, Loyalty & Growth Consultant @ North",
+    orgWord: "North",                 // emphasized (white) + linked within the title
+    phone:   "+17817967276",          // used by the Call button (tel:)
+    email:   "jeancarlos.arias@north.com",
+    website: "https://www.north.com/#contact-cta",  // used by the Website button
+    bio:     "Hey, I'm Jeancarlos. I'm not here for a one-time deal — I stick around, check in, and get to know the businesses I work with.",
+    avatar:  ""                       // optional image URL; empty = "JA" monogram
+  };
+
+  /* ============================================================
+     Data layer — cloud (Supabase) with offline fallback.
+     ============================================================ */
+  const STORE_KEY = "jca_reviews_v1";
+  const $ = (id) => document.getElementById(id);
+
+  const ONLINE = /^https?:\/\//.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 20;
+  let sb = null;
+  try {
+    if (ONLINE && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) { console.warn("Supabase init failed:", e); }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+    ));
+  }
+
+  // --- reviews ---
+  function getLocal() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch { return []; }
+  }
+  function setLocal(list) { localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+
+  async function fetchReviews() {
+    if (sb) {
+      const { data, error } = await sb
+        .from("reviews")
+        .select("name, rating, comment, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    }
+    return getLocal().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+
+  async function addReview(r) {
+    if (sb) {
+      const { error } = await sb.from("reviews")
+        .insert([{ name: r.name, rating: r.rating, comment: r.comment }]);
+      if (error) throw error;
+      return;
+    }
+    const list = getLocal();
+    list.push(r);
+    setLocal(list);
+  }
+
+  // --- profile ---
+  async function fetchProfile() {
+    if (!sb) return null;
+    const { data, error } = await sb.from("profile").select("*").limit(1).maybeSingle();
+    if (error) { console.warn("profile fetch failed:", error); return null; }
+    return data;
+  }
+
+  function relTime(iso) {
+    const then = new Date(iso).getTime();
+    const diff = Math.max(0, Date.now() - then);
+    const m = 60000, h = 3600000, d = 86400000;
+    if (diff < m)      return "Just now";
+    if (diff < h)      return Math.floor(diff / m) + "m ago";
+    if (diff < d)      return Math.floor(diff / h) + "h ago";
+    if (diff < 7 * d)  return Math.floor(diff / d) + "d ago";
+    return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function starRow(n) {
+    return "★".repeat(n) + '<span class="off">' + "★".repeat(5 - n) + "</span>";
+  }
+
+  /* ---- Header summary ---- */
+  function renderSummary(list) {
+    const rating = $("rating");
+    const fill   = $("rating-fill");
+    const num     = $("rating-num");
+    const count  = $("rating-count");
+
+    if (list.length === 0) {
+      rating.classList.add("empty");
+      fill.style.width = "0%";
+      num.textContent = "New";
+      count.textContent = "· no reviews yet";
+      return;
+    }
+    const avg = list.reduce((s, r) => s + r.rating, 0) / list.length;
+    rating.classList.remove("empty");
+    fill.style.width = (avg / 5 * 100).toFixed(2) + "%";
+    num.textContent = avg.toFixed(1);
+    count.textContent = "· " + list.length + " review" + (list.length === 1 ? "" : "s");
+  }
+
+  /* ---- Reviews list ---- */
+  function renderList(list) {
+    const el = $("review-list");
+    if (list.length === 0) {
+      el.innerHTML = '<div class="empty-state">No reviews yet — be the first to leave one.</div>';
+      return;
+    }
+    el.innerHTML = list.map(r => `
+      <div class="review">
+        <div class="review-head">
+          <span class="review-name">${esc(r.name)}</span>
+          <span class="review-stars">${starRow(r.rating)}</span>
+        </div>
+        <p class="review-body">${esc(r.comment)}</p>
+        <div class="review-date">${relTime(r.created_at)}</div>
+      </div>
+    `).join("");
+  }
+
+  async function render() {
+    let list = [];
+    try {
+      list = await fetchReviews();
+    } catch (e) {
+      console.error("Failed to load reviews:", e);
+    }
+    renderSummary(list);
+    renderList(list);
+  }
+
+  /* ---- Interactive star picker ---- */
+  let chosen = 0;
+  function paintStars(n) {
+    document.querySelectorAll("#star-input button").forEach(b => {
+      const on = Number(b.dataset.v) <= n;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-checked", Number(b.dataset.v) === chosen ? "true" : "false");
+    });
+  }
+  const starInput = $("star-input");
+  starInput.addEventListener("mouseover", e => { if (e.target.dataset.v) paintStars(Number(e.target.dataset.v)); });
+  starInput.addEventListener("mouseleave", () => paintStars(chosen));
+  starInput.addEventListener("click", e => {
+    if (!e.target.dataset.v) return;
+    chosen = Number(e.target.dataset.v);
+    paintStars(chosen);
+  });
+
+  /* ---- Submit ---- */
+  const form = $("review-form");
+  const msg  = $("form-msg");
+  const submitBtn = $("submit-btn");
+
+  function flash(text, kind) {
+    msg.textContent = text;
+    msg.className = "form-msg " + kind;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (form.company.value) return;          // honeypot tripped → silently ignore
+
+    const name    = $("rv-name").value.trim();
+    const comment = $("rv-comment").value.trim();
+
+    if (!name)             return flash("Please add your name.", "err");
+    if (!chosen)           return flash("Please pick a star rating.", "err");
+    if (!comment)          return flash("Please write a short comment.", "err");
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting…";
+
+    try {
+      await addReview({ name, rating: chosen, comment, created_at: new Date().toISOString() });
+      form.reset();
+      chosen = 0; paintStars(0);
+      flash("Thanks — your review is posted.", "ok");
+      setTimeout(() => { if (msg.classList.contains("ok")) flash("", ""); }, 3500);
+      await render();
+    } catch (err) {
+      console.error(err);
+      flash("Couldn't post your review. Please try again.", "err");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post Review";
+    }
+  });
+
+  /* ---- Apply profile (Supabase row overrides the fallback config) ---- */
+  async function applyProfile() {
+    let p = { ...PROFILE };
+    try {
+      const db = await fetchProfile();
+      if (db) {
+        if (db.name)  p.name  = db.name;
+        if (db.title) p.title = db.title;
+        if (db.phone) p.phone = db.phone;
+        if (db.email) p.email = db.email;
+        if (db.bio && db.bio.trim()) p.bio = db.bio;   // DB overrides only when it has content
+        p.avatar = db.avatar_url || p.avatar;
+      }
+    } catch (e) { console.warn("profile apply fell back to defaults:", e); }
+
+    $("name").textContent = p.name;
+
+    // title with emphasized + linked org word
+    if (p.orgWord && p.title.includes(p.orgWord)) {
+      const parts = p.title.split(p.orgWord);
+      $("title").innerHTML = esc(parts[0]) + '<a class="at" href="https://www.north.com/#contact-cta" target="_blank" rel="noopener">' + esc(p.orgWord) + "</a>" + esc(parts.slice(1).join(p.orgWord));
+    } else {
+      $("title").textContent = p.title;
+    }
+
+    $("call-btn").href  = "tel:" + p.phone;
+    $("email-btn").href = "mailto:" + p.email;
+    if ($("website-btn") && p.website) $("website-btn").href = p.website;
+
+    // avatar: image or initials monogram
+    if (p.avatar) {
+      const a = $("avatar");
+      a.textContent = "";
+      a.style.backgroundImage = "url('" + p.avatar + "')";
+    } else {
+      const initials = p.name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+      $("avatar").textContent = initials;
+    }
+
+    // bio (hidden until filled)
+    if (p.bio && p.bio.trim()) {
+      $("bio-text").textContent = p.bio;
+      $("bio-block").style.display = "block";
+    } else {
+      $("bio-block").style.display = "none";
+    }
+  }
+
+  /* ---- Init ---- */
+  applyProfile();
+  render();
+</script>
+</body>
+</html>
